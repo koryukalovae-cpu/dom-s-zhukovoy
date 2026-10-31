@@ -347,7 +347,12 @@
     const message=resultMessage();
     resultText.value=message;
     document.getElementById('send-tg').href=`https://t.me/${TG_PERSONAL}?text=${encodeURIComponent(message)}`;
-    document.getElementById('send-max').href=`https://max.ru/:share?text=${encodeURIComponent(message)}`;
+    // MAX share-ссылка открывает список получателей. Нам нужен личный чат.
+    const maxButton=document.getElementById('send-max');
+    maxButton.href=MAX_PERSONAL;
+    maxButton.textContent='Скопировать заявку и открыть чат в MAX ↗';
+    const shareNote=document.querySelector('.share-note');
+    if(shareNote)shareNote.textContent='В MAX откроется личная страница Елены. Вставьте скопированный текст заявки в сообщение и отправьте его. Если браузер не скопировал текст автоматически, вернитесь сюда и нажмите «Скопировать заявку». Сообщения не отправляются автоматически.';
     status.textContent='';
     result.scrollIntoView({behavior:'smooth',block:'start'});
   }
@@ -369,7 +374,30 @@
       status.textContent='Заявка скопирована. Откройте чат Елены, вставьте текст и отправьте сообщение.';
     }catch(e){resultText.focus();resultText.select();status.textContent='Выделила текст заявки — скопируйте его вручную и вставьте в чат Елены.';}
   });
-  document.getElementById('send-max').addEventListener('click',()=>{status.textContent='В MAX выберите чат Елены. Если текст не появился, воспользуйтесь кнопкой копирования и откройте личный чат.';});
+  document.getElementById('send-max').addEventListener('click',()=>{
+    // Событие происходит по нажатию пользователя. Ссылку не блокируем: она
+    // сразу открывает личный контакт Елены, а не список получателей MAX.
+    const value=resultText.value;
+    let copied=false;
+    try{
+      resultText.focus({preventScroll:true});
+      resultText.select();
+      copied=document.execCommand('copy');
+      if(copied)resultText.setSelectionRange(0,0);
+    }catch(e){/* Доступ к буферу зависит от настроек браузера. */}
+    if(copied){
+      status.textContent='Заявка скопирована. Перейдите в личный чат MAX, вставьте сообщение и отправьте его.';
+    }else if(navigator.clipboard&&window.isSecureContext){
+      navigator.clipboard.writeText(value).then(()=>{
+        status.textContent='Заявка скопирована. Вставьте её в личный чат MAX и отправьте.';
+      }).catch(()=>{
+        status.textContent='Если текст не скопировался, вернитесь сюда и нажмите «Скопировать заявку».';
+      });
+      status.textContent='Открываю личный чат в MAX. Если текст не скопировался, вернитесь и нажмите «Скопировать заявку».';
+    }else{
+      status.textContent='Открываю личный чат в MAX. Если текст не скопировался, вернитесь и нажмите «Скопировать заявку».';
+    }
+  });
   const initial=new URLSearchParams(location.search).get('interest');
   if(interestChoices.some(o=>o[0]===initial))store.interest=initial;
   render();
