@@ -346,7 +346,11 @@
     result.hidden=false;
     const message=resultMessage();
     resultText.value=message;
-    document.getElementById('send-tg').href=`https://t.me/${TG_PERSONAL}?text=${encodeURIComponent(message)}`;
+    const tgButton=document.getElementById('send-tg');
+    // Передаём текст через буфер, а не длинную ссылку с ?text:
+    // Telegram WebView и внешние клиенты могут по-разному открывать такие ссылки.
+    tgButton.href=`https://t.me/${TG_PERSONAL}`;
+    tgButton.textContent='Скопировать заявку и открыть Telegram ↗';
     // MAX share-ссылка открывает список получателей. Нам нужен личный чат.
     const maxButton=document.getElementById('send-max');
     maxButton.href=MAX_PERSONAL;
@@ -396,6 +400,29 @@
       status.textContent='Открываю личный чат в MAX. Если текст не скопировался, вернитесь и нажмите «Скопировать заявку».';
     }else{
       status.textContent='Открываю личный чат в MAX. Если текст не скопировался, вернитесь и нажмите «Скопировать заявку».';
+    }
+  });
+  document.getElementById('send-tg').addEventListener('click',()=>{
+    const value=resultText.value;
+    // Копирование выполняется во время пользовательского нажатия.
+    let copied=false;
+    try{
+      resultText.focus({preventScroll:true});
+      resultText.select();
+      copied=document.execCommand('copy');
+      if(copied)resultText.setSelectionRange(0,0);
+    }catch(e){/* Встроенный браузер может не разрешать execCommand */ }
+    if(copied){
+      status.textContent='Заявка скопирована. Вставьте её в личный чат Елены в Telegram и нажмите «Отправить».';
+    }else if(navigator.clipboard&&window.isSecureContext){
+      status.textContent='Открываю чат Елены. Если текст не скопировался, вернитесь сюда и нажмите «Скопировать заявку».';
+      navigator.clipboard.writeText(value).then(()=>{
+        status.textContent='Заявка скопирована. Вставьте её в Telegram и отправьте сообщение.';
+      }).catch(()=>{
+        status.textContent='Автоматическое копирование заблокировано. Вернитесь и нажмите «Скопировать заявку».';
+      });
+    }else{
+      status.textContent='Открываю личный чат Елены в Telegram. Если текст не скопировался, вернитесь и нажмите «Скопировать заявку».';
     }
   });
   const initial=new URLSearchParams(location.search).get('interest');
